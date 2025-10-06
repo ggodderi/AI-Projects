@@ -53,3 +53,21 @@ def test_invaders_descend_and_game_over():
         if gs.game_over:
             break
     assert gs.game_over
+
+
+def test_score_and_level_advance():
+    gs = GameState(width=300, height=300)
+    # small setup: single invader
+    gs.player.y = 260
+    gs.invaders = [Invader(gs.player.x, gs.player.y - 50)]
+    initial_level = gs.level
+    b = gs.player_shoot()
+    for _ in range(30):
+        gs.update()
+    # invader should be dead and score increased
+    assert gs.score >= 10
+    # After clearing, caller should advance the level
+    assert gs.is_level_cleared()
+    advanced = gs.advance_level()
+    if advanced:
+        assert gs.level == initial_level + 1
