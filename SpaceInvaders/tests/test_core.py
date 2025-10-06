@@ -11,14 +11,19 @@ def test_spawn_and_counts():
 
 def test_player_shoot_only_one():
     gs = GameState()
+    # allow up to 3 bullets
     b1 = gs.player_shoot()
     assert b1 is not None
     b2 = gs.player_shoot()
-    assert b2 is None
-    # simulate bullet dead
-    b1.alive = False
+    assert b2 is not None
     b3 = gs.player_shoot()
     assert b3 is not None
+    b4 = gs.player_shoot()
+    assert b4 is None
+    # simulate one bullet dead
+    b1.alive = False
+    b4 = gs.player_shoot()
+    assert b4 is not None
 
 
 def test_bullet_hits_invader_and_stops():

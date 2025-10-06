@@ -8,6 +8,10 @@ except Exception:
     # when run directly: python space_invaders/main.py
     from core import GameState  # type: ignore
 import numpy as np
+try:
+    from .sprites import player_sprite, invader_sprite
+except Exception:
+    from sprites import player_sprite, invader_sprite  # type: ignore
 
 SCREEN_W = 400
 SCREEN_H = 600
@@ -20,11 +24,15 @@ def make_sound(frequency=440, duration_ms=120, volume=0.2, sample_rate=44100):
     stereo = np.column_stack((mono, mono))
     return pygame.sndarray.make_sound(stereo)
 
-def draw_player(surf, player):
-    pygame.draw.polygon(surf, (0, 255, 0), [(player.x, player.y + player.h), (player.x + player.w//2, player.y), (player.x + player.w, player.y + player.h)])
 
-def draw_invader(surf, inv):
-    pygame.draw.rect(surf, (255, 255, 0), inv.rect())
+def draw_player(surf, player, sprite):
+    # center sprite on player position
+    s = pygame.transform.scale(sprite, (player.w, player.h))
+    surf.blit(s, (player.x, player.y))
+
+def draw_invader(surf, inv, sprite):
+    s = pygame.transform.scale(sprite, (inv.w, inv.h))
+    surf.blit(s, (inv.x, inv.y))
 
 def draw_bullet(surf, b):
     if b.owner == 'player':
@@ -42,6 +50,9 @@ def run():
 
     shot_sound = make_sound(880, 80, 0.08)
     hit_sound = make_sound(220, 160, 0.12)
+    # create sprites
+    p_sprite = player_sprite()
+    i_sprite = invader_sprite()
 
     running = True
     while running:
@@ -67,10 +78,10 @@ def run():
             hit_sound.play()
 
         screen.fill((0, 0, 0))
-        draw_player(screen, gs.player)
+        draw_player(screen, gs.player, p_sprite)
         for inv in gs.invaders:
             if inv.alive:
-                draw_invader(screen, inv)
+                draw_invader(screen, inv, i_sprite)
         for b in gs.bullets:
             if b.alive:
                 draw_bullet(screen, b)

@@ -57,10 +57,10 @@ class GameState:
                 self.invaders.append(Invader(start_x + c * spacing_x, start_y + r * spacing_y))
 
     def player_shoot(self):
-        # Only allow one player bullet at a time
-        for b in self.bullets:
-            if b.owner == 'player' and b.alive:
-                return None
+        # Allow up to 3 player bullets at a time
+        live_player_bullets = sum(1 for b in self.bullets if b.owner == 'player' and b.alive)
+        if live_player_bullets >= 3:
+            return None
         b = Bullet(self.player.x + self.player.w // 2, self.player.y, dy=-8, owner='player')
         self.bullets.append(b)
         return b
