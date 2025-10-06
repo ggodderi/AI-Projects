@@ -1,0 +1,10 @@
+Please create a python program that will play sudoku puzzles.  It will do the following:
+1 - Load random puzzles
+2 - Provide a way for the user to click on a cell and enter a number
+3 - It will inform the user if the number entered is incorrect, either because it is out side the range of 1-9 or if the number is already used in the associated row, column, or region.
+4 - It will provide the user a hint button that will tell the user what the options are for any given cell.
+5 - When all cells are filled, it will tell the user if the puzzle is correct or not.
+
+As stated, please use Python and an appropriate graphics module to create this gui program.
+
+place the python program in the file: ai_sudoku1.py
