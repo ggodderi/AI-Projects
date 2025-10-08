@@ -42,6 +42,8 @@ MAX_LEVEL = 12
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), 'assets')
 os.makedirs(ASSETS_DIR, exist_ok=True)
 
+HIGH_SCORE_FILE = os.path.join(ASSETS_DIR, 'highscore.json')
+
 
 def generate_wav(filename, freq=440, duration=0.08, volume=0.5, sample_rate=44100, wave_type='sine'):
     """Generate a short WAV file for simple sound effects.
@@ -64,12 +66,37 @@ def generate_wav(filename, freq=440, duration=0.08, volume=0.5, sample_rate=4410
             wf.writeframes(struct.pack('<h', int(sample)))
 
 
+def generate_bgm(filename, sample_rate=22050):
+    """Generate a short looping background 'tune' and save as WAV.
+    Keeps it very light-weight — sequence of tones.
+    """
+    melody = [440, 660, 550, 440, 0, 330, 440]
+    duration_per_note = 0.25
+    n_samples = int(sample_rate * duration_per_note * len(melody))
+    amplitude = int(16000)
+    with wave.open(filename, 'w') as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        for freq in melody:
+            for i in range(int(sample_rate * duration_per_note)):
+                t = float(i) / sample_rate
+                if freq <= 0:
+                    sample = 0
+                else:
+                    sample = amplitude * math.sin(2 * math.pi * freq * t)
+                wf.writeframes(struct.pack('<h', int(sample)))
+
+
 SHOT_WAV = os.path.join(ASSETS_DIR, 'shot.wav')
 HIT_WAV = os.path.join(ASSETS_DIR, 'hit.wav')
+BGM_WAV = os.path.join(ASSETS_DIR, 'bgm.wav')
 if not os.path.exists(SHOT_WAV):
     generate_wav(SHOT_WAV, freq=1200, duration=0.06, volume=0.3, wave_type='square')
 if not os.path.exists(HIT_WAV):
     generate_wav(HIT_WAV, freq=600, duration=0.12, volume=0.4, wave_type='sine')
+if not os.path.exists(BGM_WAV):
+    generate_bgm(BGM_WAV)
 
 
 class SoundWorker(threading.Thread):
@@ -84,6 +111,14 @@ class SoundWorker(threading.Thread):
         pygame.mixer.init()
         self.sounds['shot'] = pygame.mixer.Sound(SHOT_WAV)
         self.sounds['hit'] = pygame.mixer.Sound(HIT_WAV)
+        # background music — use pygame music module for looping
+        try:
+            pygame.mixer.music.load(BGM_WAV)
+            pygame.mixer.music.set_volume(0.25)
+            pygame.mixer.music.play(-1)
+        except Exception:
+            # fallback: ignore music errors
+            pass
 
     def run(self):
         while not self._stop.is_set():
@@ -125,18 +160,56 @@ PLAYER_PIX = [
     'XXXXX',
 ]
 
+# Spider-like invader pixel patterns with two frames each for a simple leg animation.
+# Each entry is a list of two frames; each frame is a list of rows.
 INVADER_PATTERNS = [
     [
-        ' XX ',
-        'X  X',
-        'XXXX',
-        'X  X',
+        [
+            '  X  ',
+            ' XXX ',
+            'XXXXX',
+            'X X X',
+            ' X X ',
+        ],
+        [
+            '  X  ',
+            ' XXX ',
+            'X X X',
+            'X X X',
+            ' X X ',
+        ],
     ],
     [
-        'X X ',
-        'XXX ',
-        'X X ',
-        ' X  ',
+        [
+            ' X X ',
+            'XXXXX',
+            'X X X',
+            ' X X ',
+            '  X  ',
+        ],
+        [
+            ' X X ',
+            'XXXXX',
+            ' XXX ',
+            ' X X ',
+            '  X  ',
+        ],
+    ],
+    [
+        [
+            '  X  ',
+            ' XXX ',
+            'X X X',
+            ' XXX ',
+            '  X  ',
+        ],
+        [
+            '  X  ',
+            ' XXX ',
+            'X X X',
+            'X X X',
+            '  X  ',
+        ],
     ],
 ]
 
@@ -178,20 +251,32 @@ class Bullet:
 
 class Invader:
     def __init__(self, x, y, pattern_index=0):
-        self.x = x
-        self.y = y
+        # store positions as floats for smooth movement
+        self.x = float(x)
+        self.y = float(y)
         self.alive = True
         self.pattern_index = pattern_index
-        self.surface = make_pixel_surface(INVADER_PATTERNS[pattern_index % len(INVADER_PATTERNS)], scale=3, fg=(0, 200, 0))
-        self.w = self.surface.get_width()
-        self.h = self.surface.get_height()
+        # create two-frame animation surfaces for this invader
+        frames = INVADER_PATTERNS[self.pattern_index % len(INVADER_PATTERNS)]
+        # make spiders bigger (scale 5)
+        self.surfaces = [make_pixel_surface(f, scale=5, fg=(150, 50, 180)) for f in frames]
+        self.frame_index = 0
+        self.last_frame_time = time.time()
+        self.frame_interval = 0.32  # seconds between frames (slightly faster)
+        self.w = self.surfaces[0].get_width()
+        self.h = self.surfaces[0].get_height()
 
     def rect(self):
         return pygame.Rect(self.x, self.y, self.w, self.h)
 
     def draw(self, screen):
         if self.alive:
-            screen.blit(self.surface, (self.x, self.y))
+            # toggle frame based on time
+            now = time.time()
+            if now - self.last_frame_time >= self.frame_interval:
+                self.frame_index = (self.frame_index + 1) % len(self.surfaces)
+                self.last_frame_time = now
+            screen.blit(self.surfaces[self.frame_index], (self.x, self.y))
 
 
 class Game:
@@ -212,6 +297,10 @@ class Game:
         # background worker for level setup (demonstrates threading requirement)
         self.bg_worker = threading.Thread(target=self._bg_worker_loop, daemon=True)
         self.bg_worker.start()
+        # track whether space is currently held to allow one shot per press
+        self.space_down = False
+        # load high score
+        self.high_score = self.load_high_score()
 
     def reset_game(self):
         self.level = 1
@@ -226,6 +315,26 @@ class Game:
         self.last_move_time = 0
         self.move_interval = 0.7
         self.spawn_level(self.level)
+
+    def load_high_score(self):
+        try:
+            import json
+            if os.path.exists(HIGH_SCORE_FILE):
+                with open(HIGH_SCORE_FILE, 'r') as f:
+                    data = json.load(f)
+                    return int(data.get('high_score', 0))
+        except Exception:
+            pass
+        return 0
+
+    def save_high_score(self):
+        try:
+            import json
+            data = {'high_score': max(self.high_score, self.score)}
+            with open(HIGH_SCORE_FILE, 'w') as f:
+                json.dump(data, f)
+        except Exception:
+            pass
 
     def spawn_level(self, level):
         # Increase invader count & speed with level
@@ -242,9 +351,11 @@ class Game:
                 y = margin_y + r * spacing_y
                 self.invaders.append(Invader(x, y, pattern_index=(r + c) % len(INVADER_PATTERNS)))
         # base speed decreases interval between moves
-        base = max(0.9 - (level - 1) * 0.06, 0.12)
+        # make invaders faster: significantly shorter base interval and larger dx per move
+        base = max(0.45 - (level - 1) * 0.03, 0.04)
         self.move_interval = base
-        self.invader_speed = 1 + (level - 1) * 0.25
+        # higher base speed and bigger per-level increase
+        self.invader_speed = 2.0 + (level - 1) * 0.6
         self.bullets_remaining = MAX_BULLETS_PER_LEVEL
 
     def _bg_worker_loop(self):
@@ -272,14 +383,19 @@ class Game:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
+                elif event.key == pygame.K_SPACE:
+                    if not self.space_down:
+                        self.try_shoot()
+                        self.space_down = True
+            elif event.type == pygame.KEYUP:
+                if event.key == pygame.K_SPACE:
+                    self.space_down = False
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             self.player.x = max(0, self.player.x - self.player.speed)
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             self.player.x = min(SCREEN_W - self.player.w, self.player.x + self.player.speed)
-        if keys[pygame.K_SPACE]:
-            self.try_shoot()
 
     def try_shoot(self):
         # enforce both active bullets limit and total bullets per level
@@ -353,7 +469,8 @@ class Game:
             return
         left = min(xs)
         right = max(inv.x + inv.w for inv in self.invaders if inv.alive)
-        dx = int(self.invader_direction * self.invader_speed)
+        # use float dx for smoother and faster movement
+        dx = self.invader_direction * self.invader_speed
         # If hit edge, move down and reverse
         if right + dx >= SCREEN_W - 10 or left + dx <= 10:
             for inv in self.invaders:
@@ -376,19 +493,19 @@ class Game:
         for b in self.bullets:
             b.draw(self.screen)
 
-        # HUD
-        hud = f"Score: {self.score}  Level: {self.level}  Bullets left: {self.bullets_remaining}"
+        # HUD (include high score)
+        hud = f"Score: {self.score}  High: {self.high_score}  Level: {self.level}  Bullets left: {self.bullets_remaining}"
         text = self.font.render(hud, True, (255, 255, 255))
         self.screen.blit(text, (10, 10))
-
-        if all(not inv.alive for inv in self.invaders):
-            pass
 
         pygame.display.flip()
 
     def game_over(self):
-        # Show game over and ask replay
-        self._show_message(f"GAME OVER - Score: {self.score}", "Press Y to play again, N to quit")
+        # Save high score if needed, show game over, and ask replay
+        if self.score > self.high_score:
+            self.high_score = self.score
+            self.save_high_score()
+        self._show_message(f"GAME OVER - Score: {self.score}", f"High Score: {self.high_score} - Press Y to play again, N to quit")
         # prompt
         waiting = True
         while waiting:
@@ -406,7 +523,10 @@ class Game:
             self.clock.tick(10)
 
     def win_game(self):
-        self._show_message(f"YOU WIN! Score: {self.score}", "Press Y to play again, N to quit")
+        if self.score > self.high_score:
+            self.high_score = self.score
+            self.save_high_score()
+        self._show_message(f"YOU WIN! Score: {self.score}", f"High Score: {self.high_score} - Press Y to play again, N to quit")
         waiting = True
         while waiting:
             for event in pygame.event.get():
