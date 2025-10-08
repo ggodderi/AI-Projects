@@ -138,10 +138,10 @@ class InvaderGroup:
         # Handle group movement
         self.update_group_movement()
         
-        # Speed up as invaders are destroyed
+        # Speed up as invaders are destroyed (more gradual increase)
         remaining_invaders = len(self.invaders)
         total_invaders = self.config.INVADER_ROWS * self.config.INVADER_COLS
-        speed_multiplier = 1 + (total_invaders - remaining_invaders) * 0.1
+        speed_multiplier = 1 + (total_invaders - remaining_invaders) * 0.05  # Reduced from 0.1 to 0.05
         current_speed = self.speed * speed_multiplier
         
         # Move invaders horizontally

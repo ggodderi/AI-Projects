@@ -37,13 +37,13 @@ class GameConfig:
     INVADER_WIDTH = 40
     INVADER_HEIGHT = 30
     INVADER_ROWS = 5
-    INVADER_COLS = 11
+    INVADER_COLS = 8  # Reduced from 11 to 8 for easier first level
     INVADER_SPACING_X = 60
     INVADER_SPACING_Y = 50
     INVADER_START_X = 50
     INVADER_START_Y = 100
-    INVADER_SPEED_BASE = 1
-    INVADER_SPEED_INCREMENT = 0.5
+    INVADER_SPEED_BASE = 0.5  # Reduced from 1 to 0.5 for slower movement
+    INVADER_SPEED_INCREMENT = 0.3  # Reduced from 0.5 to 0.3 for gentler progression
     INVADER_DROP_DISTANCE = 30
     
     # Bullet settings
