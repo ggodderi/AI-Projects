@@ -48,25 +48,61 @@ class Invader:
         return image
     
     def draw_top_invader(self, image):
-        """Draw the top invader sprite (octopus-like)."""
-        pygame.draw.rect(image, self.config.WHITE, (5, 5, 30, 20), 2)
-        pygame.draw.circle(image, self.config.WHITE, (10, 10), 3)
-        pygame.draw.circle(image, self.config.WHITE, (30, 10), 3)
-        pygame.draw.rect(image, self.config.WHITE, (15, 15, 10, 5))
+        """Draw the top invader sprite (spider-like)."""
+        # Spider body (central oval)
+        pygame.draw.ellipse(image, self.config.WHITE, (15, 12, 10, 8), 2)
+        
+        # Spider legs (8 legs extending outward)
+        leg_points = [
+            (10, 16), (5, 20),   # Left front legs
+            (8, 18), (3, 22),    # Left middle legs
+            (32, 18), (37, 22),  # Right middle legs
+            (30, 16), (35, 20),  # Right front legs
+        ]
+        for i in range(0, len(leg_points), 2):
+            pygame.draw.line(image, self.config.WHITE, leg_points[i], leg_points[i+1], 1)
+        
+        # Spider eyes
+        pygame.draw.circle(image, self.config.WHITE, (18, 14), 1)
+        pygame.draw.circle(image, self.config.WHITE, (22, 14), 1)
     
     def draw_middle_invader(self, image):
-        """Draw the middle invader sprite (crab-like)."""
-        pygame.draw.rect(image, self.config.WHITE, (8, 8, 24, 16), 2)
-        pygame.draw.rect(image, self.config.WHITE, (5, 12, 8, 4))
-        pygame.draw.rect(image, self.config.WHITE, (27, 12, 8, 4))
-        pygame.draw.rect(image, self.config.WHITE, (18, 20, 4, 6))
+        """Draw the middle invader sprite (smaller spider-like)."""
+        # Smaller spider body
+        pygame.draw.ellipse(image, self.config.WHITE, (12, 10, 8, 6), 2)
+        
+        # Shorter spider legs
+        leg_points = [
+            (8, 13), (4, 16),     # Left front legs
+            (10, 14), (6, 17),    # Left middle legs
+            (22, 14), (26, 17),   # Right middle legs
+            (24, 13), (28, 16),   # Right front legs
+        ]
+        for i in range(0, len(leg_points), 2):
+            pygame.draw.line(image, self.config.WHITE, leg_points[i], leg_points[i+1], 1)
+        
+        # Spider eyes
+        pygame.draw.circle(image, self.config.WHITE, (14, 11), 1)
+        pygame.draw.circle(image, self.config.WHITE, (18, 11), 1)
     
     def draw_bottom_invader(self, image):
-        """Draw the bottom invader sprite (squid-like)."""
-        pygame.draw.rect(image, self.config.WHITE, (10, 10, 20, 15), 2)
-        pygame.draw.rect(image, self.config.WHITE, (8, 8, 4, 4))
-        pygame.draw.rect(image, self.config.WHITE, (28, 8, 4, 4))
-        pygame.draw.rect(image, self.config.WHITE, (18, 22, 4, 6))
+        """Draw the bottom invader sprite (smallest spider-like)."""
+        # Smallest spider body
+        pygame.draw.ellipse(image, self.config.WHITE, (10, 8, 6, 5), 2)
+        
+        # Shortest spider legs
+        leg_points = [
+            (6, 10), (3, 12),     # Left front legs
+            (8, 11), (5, 13),     # Left middle legs
+            (18, 11), (21, 13),   # Right middle legs
+            (20, 10), (23, 12),   # Right front legs
+        ]
+        for i in range(0, len(leg_points), 2):
+            pygame.draw.line(image, self.config.WHITE, leg_points[i], leg_points[i+1], 1)
+        
+        # Spider eyes
+        pygame.draw.circle(image, self.config.WHITE, (11, 9), 1)
+        pygame.draw.circle(image, self.config.WHITE, (15, 9), 1)
     
     def get_points_for_type(self) -> int:
         """Get points awarded for destroying this invader type."""

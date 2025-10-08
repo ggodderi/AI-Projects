@@ -41,11 +41,11 @@ A classic arcade-style Space Invaders game implementation in Python using Pygame
    - **Y/N**: Play again/Quit (on game over screen)
 
 3. **Objective:**
-   - Destroy all invaders before they reach the bottom
-   - Each invader type gives different points:
-     - Top row (octopus): 30 points
-     - Middle rows (crab): 20 points  
-     - Bottom rows (squid): 10 points
+   - Destroy all spider invaders before they reach the bottom
+   - Each spider type gives different points:
+     - Top row (large spiders): 30 points
+     - Middle rows (medium spiders): 20 points  
+     - Bottom rows (small spiders): 10 points
    - Complete 12 levels to win the game
 
 4. **Game Mechanics:**

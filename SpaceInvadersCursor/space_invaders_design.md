@@ -16,3 +16,5 @@
 14 - User Multi-threading to ensure the system is performant.
 15 - There is a total of 170 bullets that can be used per level.  Once the bullets are used up, the shooting stops and the invaders are allowed to reach the ground.
 16 - The number of bullets remaining for this level should be seen on the Heads Up Display.
+17 - The shooter will look like a tank.
+18 - The invaders will look like spiders trying to invade.
