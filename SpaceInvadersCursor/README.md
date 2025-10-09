@@ -53,7 +53,9 @@ A classic arcade-style Space Invaders game implementation in Python using Pygame
    - Maximum 5 bullets on screen at once
    - Invaders speed up as their numbers decrease
    - Each level increases invader speed
-   - Game ends if invaders reach the bottom or hit your ship
+   - Invaders periodically drop bombs that can destroy your tank
+   - You can shoot bombs to destroy them before they hit your tank
+   - Game ends if invaders reach the bottom, hit your tank, or a bomb hits your tank
 
 ## Game Structure
 

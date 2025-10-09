@@ -7,6 +7,7 @@ import pygame
 import random
 from typing import List, Optional
 from .player import Player
+from .bomb import Bomb
 
 class Invader:
     """Individual invader entity."""
@@ -134,10 +135,13 @@ class InvaderGroup:
         self.config = config
         self.level = level
         self.invaders: List[Invader] = []
+        self.bombs: List[Bomb] = []
         self.direction = 1  # 1 for right, -1 for left
         self.speed = config.INVADER_SPEED_BASE + (level - 1) * config.INVADER_SPEED_INCREMENT
         self.drop_timer = 0
         self.last_drop_time = 0
+        self.bomb_timer = 0
+        self.bomb_drop_chance = 0.001  # Chance per frame for each invader to drop a bomb
         
         self.create_invaders()
     
@@ -183,6 +187,10 @@ class InvaderGroup:
         # Move invaders horizontally
         for invader in self.invaders:
             invader.rect.x += self.direction * current_speed
+        
+        # Handle bomb dropping
+        self.update_bombs()
+        self.drop_bombs()
     
     def update_group_movement(self):
         """Update the group's movement direction and dropping."""
@@ -207,6 +215,30 @@ class InvaderGroup:
             for invader in self.invaders:
                 invader.rect.y += self.config.INVADER_DROP_DISTANCE
     
+    def update_bombs(self):
+        """Update all bombs."""
+        bombs_to_remove = []
+        
+        for bomb in self.bombs:
+            bomb.update()
+            if bomb.is_off_screen():
+                bombs_to_remove.append(bomb)
+        
+        for bomb in bombs_to_remove:
+            self.bombs.remove(bomb)
+    
+    def drop_bombs(self):
+        """Randomly drop bombs from invaders."""
+        self.bomb_timer += 1
+        
+        # Increase bomb drop chance as level progresses
+        current_bomb_chance = self.bomb_drop_chance * (1 + (self.level - 1) * 0.5)
+        
+        for invader in self.invaders:
+            if random.random() < current_bomb_chance:
+                bomb = Bomb(self.config, invader.rect.centerx, invader.rect.bottom)
+                self.bombs.append(bomb)
+    
     def check_collision(self, bullet) -> Optional[Invader]:
         """Check if any invader collides with the given bullet."""
         for invader in self.invaders:
@@ -222,6 +254,38 @@ class InvaderGroup:
                 return True
         return False
     
+    def check_bomb_collision(self, player: Player) -> bool:
+        """Check if any bomb collides with the player."""
+        bombs_to_remove = []
+        hit_player = False
+        
+        for bomb in self.bombs:
+            if bomb.rect.colliderect(player.rect):
+                bombs_to_remove.append(bomb)
+                hit_player = True
+        
+        # Remove bombs that hit the player
+        for bomb in bombs_to_remove:
+            self.bombs.remove(bomb)
+        
+        return hit_player
+    
+    def check_bullet_bomb_collision(self, bullet) -> Optional[Bomb]:
+        """Check if any bomb collides with the given bullet."""
+        bombs_to_remove = []
+        hit_bomb = None
+        
+        for bomb in self.bombs:
+            if bomb.rect.colliderect(bullet.rect):
+                bombs_to_remove.append(bomb)
+                hit_bomb = bomb
+        
+        # Remove bombs that were hit
+        for bomb in bombs_to_remove:
+            self.bombs.remove(bomb)
+        
+        return hit_bomb
+    
     def has_reached_bottom(self) -> bool:
         """Check if any invader has reached the bottom of the screen."""
         for invader in self.invaders:
@@ -234,6 +298,9 @@ class InvaderGroup:
         return len(self.invaders) == 0
     
     def render(self, screen):
-        """Render all invaders."""
+        """Render all invaders and bombs."""
         for invader in self.invaders:
             invader.render(screen)
+        
+        for bomb in self.bombs:
+            bomb.render(screen)

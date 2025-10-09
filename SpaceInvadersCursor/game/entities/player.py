@@ -19,14 +19,14 @@ class Player:
         self.image = pygame.Surface((self.width, self.height))
         self.image.fill(config.BACKGROUND_COLOR)
         
-        # Draw tank body (rectangular base)
-        pygame.draw.rect(self.image, config.WHITE, (5, 20, self.width-10, 15), 2)
+        # Draw tank body (rectangular base) - adjusted for smaller width
+        pygame.draw.rect(self.image, config.WHITE, (3, 20, self.width-6, 15), 2)
         
         # Draw tank tracks (bottom)
-        pygame.draw.rect(self.image, config.WHITE, (2, 32, self.width-4, 6), 1)
+        pygame.draw.rect(self.image, config.WHITE, (1, 32, self.width-2, 6), 1)
         
-        # Draw gun turret (top part)
-        pygame.draw.rect(self.image, config.WHITE, (self.width//2-8, 8, 16, 12), 2)
+        # Draw gun turret (top part) - smaller to fit
+        pygame.draw.rect(self.image, config.WHITE, (self.width//2-6, 8, 12, 12), 2)
         
         # Draw gun barrel (extending upward)
         pygame.draw.rect(self.image, config.WHITE, (self.width//2-2, 0, 4, 12), 2)
@@ -34,9 +34,9 @@ class Player:
         # Draw gun muzzle (tip)
         pygame.draw.rect(self.image, config.WHITE, (self.width//2-3, 0, 6, 4), 2)
         
-        # Draw side details (tank features)
-        pygame.draw.rect(self.image, config.WHITE, (8, 22, 6, 8), 1)  # Left detail
-        pygame.draw.rect(self.image, config.WHITE, (self.width-14, 22, 6, 8), 1)  # Right detail
+        # Draw side details (tank features) - smaller details
+        pygame.draw.rect(self.image, config.WHITE, (5, 22, 4, 6), 1)  # Left detail
+        pygame.draw.rect(self.image, config.WHITE, (self.width-9, 22, 4, 6), 1)  # Right detail
         
         self.rect = self.image.get_rect()
         self.rect.x = config.PLAYER_START_X

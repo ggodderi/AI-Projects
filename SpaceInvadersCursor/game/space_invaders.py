@@ -108,6 +108,7 @@ class SpaceInvadersGame:
         
         # Check collisions
         self.check_collisions()
+        self.check_bomb_collisions()
         
         # Check game over conditions
         self.check_game_over()
@@ -147,7 +148,7 @@ class SpaceInvadersGame:
         self.sound_manager.play_shot_sound()
     
     def check_collisions(self):
-        """Check for collisions between bullets and invaders."""
+        """Check for collisions between bullets and invaders/bombs."""
         bullets_to_remove = []
         
         for bullet in self.bullets:
@@ -158,10 +159,22 @@ class SpaceInvadersGame:
                 self.score += hit_invader.points
                 self.create_explosion(hit_invader.rect.center)
                 self.sound_manager.play_hit_sound()
+            else:
+                # Check collision with bombs
+                hit_bomb = self.invader_group.check_bullet_bomb_collision(bullet)
+                if hit_bomb:
+                    bullets_to_remove.append(bullet)
+                    self.create_explosion(hit_bomb.rect.center)
+                    self.sound_manager.play_hit_sound()
         
         # Remove hit bullets
         for bullet in bullets_to_remove:
             self.bullets.remove(bullet)
+    
+    def check_bomb_collisions(self):
+        """Check for collisions between bombs and player."""
+        if self.invader_group.check_bomb_collision(self.player):
+            self.game_over = True
     
     def create_explosion(self, position):
         """Create an explosion at the given position."""

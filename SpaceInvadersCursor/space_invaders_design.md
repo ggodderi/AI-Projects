@@ -18,3 +18,6 @@
 16 - The number of bullets remaining for this level should be seen on the Heads Up Display.
 17 - The shooter will look like a tank.
 18 - The invaders will look like spiders trying to invade.
+19 - The invaders will periodically drop a bomb on the shooter.  If the bomb hits the shooter, the shooter will the shooter will blow up and the game will end.
+20 - If the bullet from the shooter hits the bomb from the invader, the bomb will explode and stop dropping.
+21 - The width of the shooter will be no more than the width of the invaders.

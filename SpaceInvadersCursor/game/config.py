@@ -27,7 +27,7 @@ class GameConfig:
     MAX_LEVELS = 12
     
     # Player settings
-    PLAYER_WIDTH = 60
+    PLAYER_WIDTH = 40  # Reduced from 60 to match invader width
     PLAYER_HEIGHT = 40
     PLAYER_SPEED = 5
     PLAYER_START_X = SCREEN_WIDTH // 2 - PLAYER_WIDTH // 2
