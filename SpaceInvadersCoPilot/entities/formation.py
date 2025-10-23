@@ -30,13 +30,14 @@ class Formation:
     def __init__(self) -> None:
         self.aliens: List[List[Optional[Alien]]] = []
         y = ALIEN_START_Y
-        # Score values by row (top higher)
+        # Score values and colors by row (top higher)
         values = [30, 20, 20, 10, 10]
+        colors = [(255,255,0), (0,255,255), (255,0,255), (0,255,0), (255,255,255)]
         for r in range(ALIEN_ROWS):
             row: List[Optional[Alien]] = []
             x = ALIEN_START_X
             for c in range(ALIEN_COLS):
-                row.append(Alien(x, y, 32, 24, values[r % len(values)]))
+                row.append(Alien(x, y, 32, 24, values[r % len(values)], colors[r % len(colors)]))
                 x += ALIEN_X_SPACING
             self.aliens.append(row)
             y += ALIEN_Y_SPACING

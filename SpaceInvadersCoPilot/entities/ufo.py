@@ -32,4 +32,14 @@ class UFO:
 
     def draw(self, surface: pygame.Surface) -> None:
         if self.active:
-            pygame.draw.rect(surface, WHITE, self.rect, 2)
+            x, y, w, h = self.rect.x, self.rect.y, self.rect.width, self.rect.height
+            # UFO body (oval)
+            pygame.draw.ellipse(surface, (255,0,0), (x, y + h // 4, w, h // 2))
+            # Dome
+            pygame.draw.ellipse(surface, (255,255,255), (x + w // 4, y, w // 2, h // 2))
+            # Lights (multi-color)
+            colors = [(255,255,0), (0,255,255), (0,255,0)]
+            for i in range(3):
+                lx = x + w // 4 + i * w // 6
+                ly = y + h * 3 // 4
+                pygame.draw.circle(surface, colors[i], (lx, ly), h // 10)

@@ -64,6 +64,19 @@ class Player:
         return self.active_bullet
 
     def draw(self, surface: pygame.Surface) -> None:
-        pygame.draw.rect(surface, GREEN, self.rect)
+        # Draw a more detailed cannon shape (pixel-art)
+        x, y, w, h = self.rect.x, self.rect.y, self.rect.width, self.rect.height
+        # Base
+        pygame.draw.rect(surface, (0,255,0), (x, y + h // 2, w, h // 2))
+        # Barrel
+        pygame.draw.rect(surface, (0,200,0), (x + w // 2 - w // 8, y, w // 4, h // 2))
+        # Left foot
+        pygame.draw.rect(surface, (0,180,0), (x, y + h - h // 6, w // 4, h // 6))
+        # Right foot
+        pygame.draw.rect(surface, (0,180,0), (x + w - w // 4, y + h - h // 6, w // 4, h // 6))
+        # Add a small red tip to barrel
+        pygame.draw.rect(surface, (255,0,0), (x + w // 2 - w // 16, y, w // 8, h // 6))
+        # Add a yellow highlight to base
+        pygame.draw.rect(surface, (255,255,0), (x + w // 4, y + h // 2 + h // 6, w // 2, h // 8))
         if self.active_bullet is not None:
             self.active_bullet.draw(surface)
