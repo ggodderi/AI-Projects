@@ -62,7 +62,8 @@ class GameplayScene:
             if event.key in (pygame.K_p, pygame.K_ESCAPE):
                 self.game.set_scene(PauseScene(self.game, self))
             elif event.key == pygame.K_SPACE:
-                self.player.fire()
+                if self.player.fire():
+                    self.game.audio.play_sfx("fire")
 
     def update(self, dt: float) -> None:
         # Update player
@@ -120,6 +121,7 @@ class GameplayScene:
                 self.score += self.ufo.value
                 self.ufo.active = False
                 pb.alive = False
+                self.game.audio.play_sfx("ufo")
                 continue
             # Aliens (coarse scan)
             for row in self.formation.aliens:
@@ -130,6 +132,7 @@ class GameplayScene:
                         self.score += alien.value
                         pb.alive = False
                         hit = True
+                        self.game.audio.play_sfx("alien_hit")
                         break
                 if hit:
                     break
@@ -149,6 +152,7 @@ class GameplayScene:
             if rect_collision(b.rect, self.player.rect):
                 b.alive = False
                 self.lives -= 1
+                self.game.audio.play_sfx("player_hit")
                 if self.lives <= 0:
                     self.end_game()
                     return
