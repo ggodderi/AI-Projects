@@ -36,7 +36,7 @@ class GameplayScene:
 
         self.player = Player()
         self.formation = Formation()
-        self.player_bullets: List[Projectile] = []  # using Player.active_bullet
+    # Player bullets now tracked in Player.bullets
         self.alien_bullets: List[Projectile] = []
 
         # Shields
@@ -62,16 +62,12 @@ class GameplayScene:
             if event.key in (pygame.K_p, pygame.K_ESCAPE):
                 self.game.set_scene(PauseScene(self.game, self))
             elif event.key == pygame.K_SPACE:
-                b = self.player.fire()
-                if b:
-                    self.player_bullets.append(b)
+                self.player.fire()
 
     def update(self, dt: float) -> None:
         # Update player
         keys = pygame.key.get_pressed()
         self.player.update(dt, keys)
-        # keep list in sync (player holds active_bullet)
-        self.player_bullets = [b for b in [self.player.active_bullet] if b is not None]
 
         # Update formation
         self.formation.update(dt)
@@ -110,24 +106,21 @@ class GameplayScene:
             self.end_game()
 
     def handle_collisions(self) -> None:
-        # Player bullet vs aliens/UFO/shields
-        if self.player.active_bullet is not None:
-            pb = self.player.active_bullet
+        # Player bullets vs aliens/UFO/shields
+        for pb in list(self.player.bullets):
             # Shields
             for shield in self.shields:
                 if shield.hit(pb.rect):
                     pb.alive = False
-                    self.player.active_bullet = None
                     break
-            if self.player.active_bullet is None:
-                return
+            if not pb.alive:
+                continue
             # UFO
             if self.ufo.active and rect_collision(pb.rect, self.ufo.rect):
                 self.score += self.ufo.value
                 self.ufo.active = False
                 pb.alive = False
-                self.player.active_bullet = None
-                return
+                continue
             # Aliens (coarse scan)
             for row in self.formation.aliens:
                 hit = False
@@ -136,7 +129,6 @@ class GameplayScene:
                         alien.alive = False
                         self.score += alien.value
                         pb.alive = False
-                        self.player.active_bullet = None
                         hit = True
                         break
                 if hit:
