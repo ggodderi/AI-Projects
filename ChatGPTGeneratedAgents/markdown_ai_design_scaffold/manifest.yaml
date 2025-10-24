@@ -1,0 +1,22 @@
+# Controls file load order, gating, and exports
+version: 1
+project_title: "Sample Project"
+read_order:
+  - briefs/brief.sample.md
+  - research/research.sample.md
+  - ux/flows.sample.md
+  - ui/components.sample.md
+  - tech/architecture.sample.md
+  - quality/requirements.sample.md
+  - tokens/design-tokens.json
+gates:
+  coverage:
+    require_sections: [goals, user_flows, components, api_contracts]
+  quality:
+    a11y_standard: "WCAG-2.2 AA"
+    max_open_issues: 0
+  feasibility:
+    require_signoff: ["developer"]
+exports:
+  - out/DesignDoc.md
+  - out/Decisions-ADR.md

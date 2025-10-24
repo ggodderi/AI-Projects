@@ -22,3 +22,4 @@
 20 - If the bullet from the shooter hits the bomb from the invader, the bomb will explode and stop dropping.
 21 - The width of the shooter will be no more than the width of the invaders.
 22 - When one of the invaders hits either the left or right side of the screen, the entire set of remaining invaders drops one level and the entire groups then moves in the opposite direction.
+23 - Keep a high score of all games played and display that as well.  Congratulate the player if the cross the high score.

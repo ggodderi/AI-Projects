@@ -1,0 +1,22 @@
+{
+  "color": {
+    "primary-500": "#2F6EF4",
+    "surface": "#FFFFFF",
+    "text": "#1B1F24"
+  },
+  "spacing": {
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24
+  },
+  "typography": {
+    "fontFamily": "Inter, system-ui, -apple-system, Segoe UI, Roboto",
+    "scale": {
+      "body": 16,
+      "h1": 32,
+      "h2": 24
+    }
+  }
+}
