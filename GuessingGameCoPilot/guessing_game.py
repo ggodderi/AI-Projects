@@ -60,12 +60,43 @@ class GuessingGame:
 def main() -> None:
     """Run an interactive guessing game using stdin/stdout."""
     print("Welcome to the Guessing Game!")
-    print("I'm thinking of a number between 1 and 100. Try to guess it.")
-    game = GuessingGame(1, 100)
+    print("You can choose the minimum and maximum numbers for the game.")
+
+    def ask_bound(prompt: str, default: int) -> Optional[int]:
+        while True:
+            try:
+                raw = input(f"{prompt} (default {default}): ")
+            except (EOFError, KeyboardInterrupt):
+                print("\nGoodbye!")
+                return None
+
+            raw = raw.strip()
+            if raw == "":
+                return default
+            try:
+                value = int(raw)
+            except ValueError:
+                print("Please enter a valid integer or press Enter to accept the default.")
+                continue
+            return value
+
+    low = ask_bound("Enter minimum number", 1)
+    if low is None:
+        return
+    high = ask_bound("Enter maximum number", 100)
+    if high is None:
+        return
+
+    if low >= high:
+        print(f"Invalid bounds: minimum ({low}) must be less than maximum ({high}). Exiting.")
+        return
+
+    print(f"I'm thinking of a number between {low} and {high}. Try to guess it.")
+    game = GuessingGame(low, high)
 
     while not game.finished:
         try:
-            raw = input("Enter your guess (1-100): ")
+            raw = input(f"Enter your guess ({game.low}-{game.high}): ")
         except (EOFError, KeyboardInterrupt):
             print("\nGoodbye!")
             return
