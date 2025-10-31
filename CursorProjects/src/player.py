@@ -12,9 +12,30 @@ class Player(pygame.sprite.Sprite):
 		if y is None:
 			y = SCREEN_HEIGHT - 40  # Bottom with margin
 		
-		self.image = pygame.Surface((40, 20))
-		self.image.fill((0, 255, 0))  # Green rectangle placeholder
+		# Create cannon sprite
+		self.image = pygame.Surface((44, 24), pygame.SRCALPHA)
+		self._draw_cannon()
 		self.rect = self.image.get_rect(center=(int(x), int(y)))
+	
+	def _draw_cannon(self) -> None:
+		"""Draw a cannon/base sprite."""
+		# Cannon color (green/yellow)
+		CANNON_COLOR = (0, 255, 0)
+		HIGHLIGHT = (150, 255, 150)
+		DARK = (0, 200, 0)
+		
+		# Base (bottom rectangle)
+		pygame.draw.rect(self.image, CANNON_COLOR, (4, 16, 36, 8))
+		# Barrel (top trapezoid shape)
+		pygame.draw.polygon(self.image, CANNON_COLOR, [
+			(8, 16), (36, 16), (38, 8), (6, 8)
+		])
+		# Barrel tip
+		pygame.draw.rect(self.image, CANNON_COLOR, (18, 4, 8, 4))
+		# Highlight on barrel
+		pygame.draw.line(self.image, HIGHLIGHT, (8, 12), (36, 12), 2)
+		# Barrel detail
+		pygame.draw.rect(self.image, DARK, (20, 6, 4, 4))
 		
 		self.speed = 300.0  # pixels per second
 		self.lives = 3

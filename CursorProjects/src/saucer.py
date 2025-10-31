@@ -13,12 +13,20 @@ class Saucer(pygame.sprite.Sprite):
 			direction = random.choice([-1, 1])
 		self.direction = direction
 		
-		# Create saucer sprite
-		self.image = pygame.Surface((40, 20), pygame.SRCALPHA)
-		# Draw saucer shape (simple UFO)
-		pygame.draw.ellipse(self.image, (255, 150, 150), (0, 5, 40, 15))
-		pygame.draw.ellipse(self.image, (200, 100, 100), (5, 8, 30, 10))
-		pygame.draw.rect(self.image, (150, 80, 80), (15, 0, 10, 8))
+		# Create saucer sprite (UFO/mystery ship)
+		self.image = pygame.Surface((48, 20), pygame.SRCALPHA)
+		# Draw saucer shape - classic Space Invaders style
+		# Top arc
+		pygame.draw.arc(self.image, (255, 255, 255), (0, 0, 48, 20), 0, 3.14159, 3)
+		# Bottom body
+		pygame.draw.rect(self.image, (255, 255, 255), (4, 10, 40, 8))
+		# Windows/details
+		pygame.draw.rect(self.image, (255, 0, 0), (10, 12, 6, 4))
+		pygame.draw.rect(self.image, (255, 0, 0), (20, 12, 6, 4))
+		pygame.draw.rect(self.image, (255, 0, 0), (30, 12, 6, 4))
+		# Tip
+		pygame.draw.polygon(self.image, (255, 255, 255), [(0, 10), (4, 6), (4, 14)])
+		pygame.draw.polygon(self.image, (255, 255, 255), [(48, 10), (44, 6), (44, 14)])
 		
 		self.rect = self.image.get_rect()
 		
