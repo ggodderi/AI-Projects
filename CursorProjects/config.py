@@ -29,6 +29,12 @@ BOMB_SPAWN_INTERVAL_BASE = 2.0  # seconds between bomb spawn attempts
 BOMB_MAX_COUNT_BASE = 2  # base max active bombs
 BOMB_MAX_COUNT_PER_WAVE = 1  # additional bombs per wave
 
+# Bunkers (Shields)
+BUNKER_COUNT = 4
+BUNKER_WIDTH = 80
+BUNKER_HEIGHT = 60
+BUNKER_DAMAGE_RADIUS = 8  # radius of damage when hit
+
 # Controls (pygame key constants names; resolved at runtime)
 KEY_BINDINGS = {
 	"move_left": "K_LEFT",

@@ -5,12 +5,13 @@ import random
 from config import (
 	SCREEN_WIDTH, SCREEN_HEIGHT, FPS, BLACK, WHITE,
 	BOMB_SPAWN_INTERVAL_BASE, BOMB_MAX_COUNT_BASE, BOMB_MAX_COUNT_PER_WAVE,
-	STARTING_LIVES,
+	STARTING_LIVES, BUNKER_COUNT, BUNKER_WIDTH,
 )
 from src.game_state import GameState, GameStateManager
 from src.player import Player
 from src.bullet import Bullet
 from src.bomb import Bomb
+from src.bunker import Bunker
 from src.formation import InvaderFormation
 
 
@@ -29,6 +30,7 @@ class Game:
 		self.player: Player | None = None
 		self.bullets: pygame.sprite.Group = pygame.sprite.Group()
 		self.bombs: pygame.sprite.Group = pygame.sprite.Group()
+		self.bunkers: list[Bunker] = []
 		self.formation: InvaderFormation | None = None
 		self.score = 0
 		self.wave = 1
@@ -56,6 +58,17 @@ class Game:
 		self.bullets.empty()
 		self.bombs.empty()
 		self.bomb_spawn_timer = 0.0
+		
+		# Create bunkers (4 bunkers evenly spaced above player)
+		self.bunkers.clear()
+		bunker_y = SCREEN_HEIGHT - 150  # Position above player
+		total_bunker_width = BUNKER_COUNT * BUNKER_WIDTH
+		spacing = (SCREEN_WIDTH - total_bunker_width) // (BUNKER_COUNT + 1)
+		for i in range(BUNKER_COUNT):
+			bunker_x = spacing + i * (BUNKER_WIDTH + spacing)
+			bunker = Bunker(bunker_x, bunker_y)
+			self.bunkers.append(bunker)
+		
 		# Create formation at top of screen (centered, with margins)
 		formation_start_x = SCREEN_WIDTH // 2 - (11 * 50) // 2 + 25  # Center the formation
 		formation_start_y = 50
@@ -144,18 +157,47 @@ class Game:
 				self.try_spawn_bomb(dt)
 				
 				# Check for bullet-invader collisions
-				for bullet in self.bullets:
+				for bullet in list(self.bullets):  # Use list copy to avoid modification during iteration
+					bullet_hit = False
+					
+					# Check invader collisions first
 					for invader in self.formation.get_all_invaders():
 						if bullet.rect.colliderect(invader.rect):
 							# Hit! Remove invader and bullet, award points
 							self.score += invader.points
 							self.formation.remove_invader(invader)
 							bullet.kill()
+							bullet_hit = True
 							break  # Each bullet only hits one invader
+					
+					# Check bunker collisions if bullet still active
+					if not bullet_hit:
+						for bunker in self.bunkers:
+							if bunker.is_colliding(bullet.rect):
+								# Hit bunker - damage it and despawn bullet
+								collision_point = bunker.get_collision_point(bullet.rect)
+								if collision_point:
+									bunker.damage_at(collision_point)
+								bullet.kill()
+								break
 				
-				# Check for bomb-player collisions
-				if self.player and not self.player.invulnerable:
-					for bomb in self.bombs:
+				# Check for bomb collisions (bunkers and player)
+				for bomb in list(self.bombs):  # Use list copy to avoid modification during iteration
+					bomb_hit = False
+					
+					# Check bunker collisions first
+					for bunker in self.bunkers:
+						if bunker.is_colliding(bomb.rect):
+							# Hit bunker - damage it and despawn bomb
+							collision_point = bunker.get_collision_point(bomb.rect)
+							if collision_point:
+								bunker.damage_at(collision_point)
+							bomb.kill()
+							bomb_hit = True
+							break
+					
+					# Check player collision if bomb still active
+					if not bomb_hit and self.player and not self.player.invulnerable:
 						if bomb.rect.colliderect(self.player.rect):
 							# Player hit! Lose life
 							self.player.lives -= 1
@@ -179,6 +221,15 @@ class Game:
 					formation_start_x = SCREEN_WIDTH // 2 - (11 * 50) // 2 + 25
 					self.formation = InvaderFormation(formation_start_x, 50)
 					self.bombs.empty()  # Clear any remaining bombs
+					# Reset bunkers for new wave
+					bunker_y = SCREEN_HEIGHT - 150
+					total_bunker_width = BUNKER_COUNT * BUNKER_WIDTH
+					spacing = (SCREEN_WIDTH - total_bunker_width) // (BUNKER_COUNT + 1)
+					self.bunkers.clear()
+					for i in range(BUNKER_COUNT):
+						bunker_x = spacing + i * (BUNKER_WIDTH + spacing)
+						bunker = Bunker(bunker_x, bunker_y)
+						self.bunkers.append(bunker)
 				
 				# Check if invaders reached player
 				if self.player and not self.player.invulnerable:
@@ -215,6 +266,10 @@ class Game:
 		if self.formation:
 			for invader in self.formation.get_all_invaders():
 				self.screen.blit(invader.image, invader.rect)
+		
+		# Render bunkers
+		for bunker in self.bunkers:
+			self.screen.blit(bunker.image, bunker.rect)
 		
 		# Render bullets
 		self.bullets.draw(self.screen)
