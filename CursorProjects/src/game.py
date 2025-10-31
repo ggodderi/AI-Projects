@@ -212,14 +212,14 @@ class Game:
 				if not self.saucer.alive():  # Despawned off screen
 					self.saucer = None
 			
-		# Try to spawn saucer
-		had_saucer = self.saucer is not None
-		self.try_spawn_saucer(dt)
-		# Play flyby sound when saucer first spawns
-		if self.saucer and not had_saucer:
-			self.audio.play_sound("saucer_flyby")
-		
-		if self.formation:
+			# Try to spawn saucer
+			had_saucer = self.saucer is not None
+			self.try_spawn_saucer(dt)
+			# Play flyby sound when saucer first spawns
+			if self.saucer and not had_saucer:
+				self.audio.play_sound("saucer_flyby")
+			
+			if self.formation:
 				self.formation.update(dt)
 				
 				# Try to spawn bombs
@@ -271,15 +271,15 @@ class Game:
 					
 					# Check bunker collisions first
 					for bunker in self.bunkers:
-							if bunker.is_colliding(bomb.rect):
-								# Hit bunker - damage it and despawn bomb
-								collision_point = bunker.get_collision_point(bomb.rect)
-								if collision_point:
-									bunker.damage_at(collision_point)
-									self.audio.play_sound("bunker_chip")
-								bomb.kill()
-								bomb_hit = True
-								break
+						if bunker.is_colliding(bomb.rect):
+							# Hit bunker - damage it and despawn bomb
+							collision_point = bunker.get_collision_point(bomb.rect)
+							if collision_point:
+								bunker.damage_at(collision_point)
+								self.audio.play_sound("bunker_chip")
+							bomb.kill()
+							bomb_hit = True
+							break
 					
 					# Check player collision if bomb still active
 					if not bomb_hit and self.player and not self.player.invulnerable:
