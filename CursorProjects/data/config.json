@@ -1,0 +1,22 @@
+{
+	"screen": {
+		"width": 800,
+		"height": 600
+	},
+	"gameplay": {
+		"starting_lives": 3,
+		"extra_life_score": 1500,
+		"max_player_bullets": 5
+	},
+	"audio": {
+		"volume": 0.7,
+		"mute": false
+	},
+	"controls": {
+		"move_left": "K_LEFT",
+		"move_right": "K_RIGHT",
+		"fire": "K_SPACE",
+		"pause": "K_p",
+		"back": "K_ESCAPE"
+	}
+}
