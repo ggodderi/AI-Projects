@@ -8,6 +8,8 @@ class GameState(Enum):
 	PAUSED = auto()
 	WAVE_CLEARED = auto()
 	GAME_OVER = auto()
+	HIGH_SCORES = auto()
+	SETTINGS = auto()
 
 
 class GameStateManager:

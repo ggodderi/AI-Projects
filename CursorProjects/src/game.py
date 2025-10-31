@@ -6,13 +6,18 @@ from config import (
 	SCREEN_WIDTH, SCREEN_HEIGHT, FPS, BLACK, WHITE,
 	BOMB_SPAWN_INTERVAL_BASE, BOMB_MAX_COUNT_BASE, BOMB_MAX_COUNT_PER_WAVE,
 	STARTING_LIVES, BUNKER_COUNT, BUNKER_WIDTH,
+	EXTRA_LIFE_SCORE, SAUCER_SPAWN_INTERVAL_MIN, SAUCER_SPAWN_INTERVAL_MAX,
 )
 from src.game_state import GameState, GameStateManager
 from src.player import Player
 from src.bullet import Bullet
 from src.bomb import Bomb
 from src.bunker import Bunker
+from src.saucer import Saucer
 from src.formation import InvaderFormation
+from src.audio_manager import AudioManager
+from src.high_scores import load_high_scores, submit_score
+from src.settings import load_settings
 
 
 class Game:
@@ -31,12 +36,21 @@ class Game:
 		self.bullets: pygame.sprite.Group = pygame.sprite.Group()
 		self.bombs: pygame.sprite.Group = pygame.sprite.Group()
 		self.bunkers: list[Bunker] = []
+		self.saucer: Saucer | None = None
 		self.formation: InvaderFormation | None = None
 		self.score = 0
 		self.wave = 1
+		self.next_extra_life_score = EXTRA_LIFE_SCORE
+		self.high_scores = load_high_scores()
 		
-		# Bomb spawning
+		# Audio
+		settings = load_settings()
+		self.audio = AudioManager(settings.get("audio", {}).get("volume", 0.7))
+		
+		# Spawning timers
 		self.bomb_spawn_timer = 0.0
+		self.saucer_spawn_timer = 0.0
+		self.next_saucer_interval = random.uniform(SAUCER_SPAWN_INTERVAL_MIN, SAUCER_SPAWN_INTERVAL_MAX)
 
 	def init_game(self, reset_score: bool = False) -> None:
 		"""Initialize/reset game objects when entering PLAYING state"""
@@ -58,6 +72,11 @@ class Game:
 		self.bullets.empty()
 		self.bombs.empty()
 		self.bomb_spawn_timer = 0.0
+		self.saucer = None
+		self.saucer_spawn_timer = 0.0
+		self.next_saucer_interval = random.uniform(SAUCER_SPAWN_INTERVAL_MIN, SAUCER_SPAWN_INTERVAL_MAX)
+		if reset_score:
+			self.next_extra_life_score = EXTRA_LIFE_SCORE
 		
 		# Create bunkers (4 bunkers evenly spaced above player)
 		self.bunkers.clear()
@@ -83,6 +102,25 @@ class Game:
 		invader_ratio = remaining / (5 * 11)  # Normalize to 0-1
 		base_max = BOMB_MAX_COUNT_BASE + int(invader_ratio * 3)  # 2-5 based on invaders
 		return base_max + (self.wave - 1) * BOMB_MAX_COUNT_PER_WAVE
+	
+	def check_extra_life(self) -> None:
+		"""Check if player earned an extra life."""
+		if self.score >= self.next_extra_life_score and self.player:
+			self.player.lives += 1
+			self.next_extra_life_score += EXTRA_LIFE_SCORE  # Next life at next threshold
+	
+	def try_spawn_saucer(self, dt: float) -> None:
+		"""Attempt to spawn a saucer."""
+		# Don't spawn if one already exists
+		if self.saucer is not None:
+			return
+		
+		self.saucer_spawn_timer += dt
+		if self.saucer_spawn_timer >= self.next_saucer_interval:
+			self.saucer_spawn_timer = 0.0
+			self.next_saucer_interval = random.uniform(SAUCER_SPAWN_INTERVAL_MIN, SAUCER_SPAWN_INTERVAL_MAX)
+			# Spawn saucer
+			self.saucer = Saucer()
 	
 	def try_spawn_bomb(self, dt: float) -> None:
 		"""Attempt to spawn a bomb from a random front-line invader."""
@@ -113,6 +151,7 @@ class Game:
 			# Spawn bomb at invader position
 			bomb = Bomb(invader.rect.centerx, invader.rect.bottom)
 			self.bombs.add(bomb)
+			self.audio.play_sound("invader_shot")
 	
 	def handle_events(self) -> None:
 		for event in pygame.event.get():
@@ -132,6 +171,20 @@ class Game:
 							x, y = self.player.get_spawn_position()
 							bullet = Bullet(x, y)
 							self.bullets.add(bullet)
+							self.audio.play_sound("player_shot")
+				elif self.state.current == GameState.TITLE:
+					if event.key == pygame.K_h:
+						self.state.set_state(GameState.HIGH_SCORES)
+					elif event.key == pygame.K_s:
+						self.state.set_state(GameState.SETTINGS)
+				elif self.state.current == GameState.HIGH_SCORES:
+					if event.key in (pygame.K_ESCAPE, pygame.K_SPACE, pygame.K_RETURN):
+						self.state.set_state(GameState.TITLE)
+				elif self.state.current == GameState.SETTINGS:
+					if event.key == pygame.K_ESCAPE:
+						self.state.set_state(GameState.TITLE)
+					elif event.key == pygame.K_m:
+						self.audio.mute()
 				elif self.state.current == GameState.PAUSED:
 					if event.key == pygame.K_p:
 						self.state.set_state(GameState.PLAYING)
@@ -139,6 +192,9 @@ class Game:
 						self.state.set_state(GameState.TITLE)
 				elif self.state.current == GameState.GAME_OVER:
 					if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_ESCAPE):
+						# Submit score before returning to title
+						if self.score > 0:
+							self.high_scores = submit_score(self.score)
 						self.state.set_state(GameState.TITLE)
 
 	def update(self, dt: float) -> None:
@@ -150,7 +206,20 @@ class Game:
 			self.bullets.update(dt)
 			self.bombs.update(dt)
 			
-			if self.formation:
+			# Update saucer
+			if self.saucer:
+				self.saucer.update(dt)
+				if not self.saucer.alive():  # Despawned off screen
+					self.saucer = None
+			
+		# Try to spawn saucer
+		had_saucer = self.saucer is not None
+		self.try_spawn_saucer(dt)
+		# Play flyby sound when saucer first spawns
+		if self.saucer and not had_saucer:
+			self.audio.play_sound("saucer_flyby")
+		
+		if self.formation:
 				self.formation.update(dt)
 				
 				# Try to spawn bombs
@@ -168,7 +237,21 @@ class Game:
 							self.formation.remove_invader(invader)
 							bullet.kill()
 							bullet_hit = True
+							self.audio.play_sound("invader_hit")
+							self.check_extra_life()  # Check for extra life after scoring
 							break  # Each bullet only hits one invader
+					
+					# Check saucer collision if bullet still active
+					if not bullet_hit and self.saucer:
+						if bullet.rect.colliderect(self.saucer.rect):
+							# Hit saucer! Award points and despawn
+							self.score += self.saucer.get_points()
+							self.saucer.kill()
+							self.saucer = None
+							bullet.kill()
+							self.audio.play_sound("saucer_hit")
+							self.check_extra_life()  # Check for extra life after scoring
+							bullet_hit = True
 					
 					# Check bunker collisions if bullet still active
 					if not bullet_hit:
@@ -178,6 +261,7 @@ class Game:
 								collision_point = bunker.get_collision_point(bullet.rect)
 								if collision_point:
 									bunker.damage_at(collision_point)
+									self.audio.play_sound("bunker_chip")
 								bullet.kill()
 								break
 				
@@ -187,14 +271,15 @@ class Game:
 					
 					# Check bunker collisions first
 					for bunker in self.bunkers:
-						if bunker.is_colliding(bomb.rect):
-							# Hit bunker - damage it and despawn bomb
-							collision_point = bunker.get_collision_point(bomb.rect)
-							if collision_point:
-								bunker.damage_at(collision_point)
-							bomb.kill()
-							bomb_hit = True
-							break
+							if bunker.is_colliding(bomb.rect):
+								# Hit bunker - damage it and despawn bomb
+								collision_point = bunker.get_collision_point(bomb.rect)
+								if collision_point:
+									bunker.damage_at(collision_point)
+									self.audio.play_sound("bunker_chip")
+								bomb.kill()
+								bomb_hit = True
+								break
 					
 					# Check player collision if bomb still active
 					if not bomb_hit and self.player and not self.player.invulnerable:
@@ -209,8 +294,10 @@ class Game:
 								self.player.invulnerable = True
 								self.player.invulnerability_timer = 2.0  # 2 seconds invulnerable
 								self.bullets.empty()  # Clear bullets on death
+								self.audio.play_sound("player_death")
 							else:
 								# Game over
+								self.audio.play_sound("player_death")
 								self.state.set_state(GameState.GAME_OVER)
 							break
 				
@@ -252,11 +339,15 @@ class Game:
 		self.screen.blit(title_text, title_rect)
 		
 		start_text = self.font_medium.render("Press SPACE or ENTER to Start", True, WHITE)
-		start_rect = start_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50))
+		start_rect = start_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 20))
 		self.screen.blit(start_text, start_rect)
 		
+		menu_text = self.font_small.render("H: High Scores | S: Settings", True, WHITE)
+		menu_rect = menu_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 80))
+		self.screen.blit(menu_text, menu_rect)
+		
 		controls_text = self.font_small.render("Arrow Keys: Move | SPACE: Fire | P: Pause | ESC: Quit", True, WHITE)
-		controls_rect = controls_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 150))
+		controls_rect = controls_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 120))
 		self.screen.blit(controls_text, controls_rect)
 
 	def render_playing(self) -> None:
@@ -270,6 +361,10 @@ class Game:
 		# Render bunkers
 		for bunker in self.bunkers:
 			self.screen.blit(bunker.image, bunker.rect)
+		
+		# Render saucer
+		if self.saucer:
+			self.screen.blit(self.saucer.image, self.saucer.rect)
 		
 		# Render bullets
 		self.bullets.draw(self.screen)
@@ -324,6 +419,46 @@ class Game:
 		restart_rect = restart_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 100))
 		self.screen.blit(restart_text, restart_rect)
 
+	def render_high_scores(self) -> None:
+		self.screen.fill(BLACK)
+		title_text = self.font_large.render("HIGH SCORES", True, WHITE)
+		title_rect = title_text.get_rect(center=(SCREEN_WIDTH // 2, 80))
+		self.screen.blit(title_text, title_rect)
+		
+		if not self.high_scores:
+			no_scores = self.font_medium.render("No scores yet!", True, WHITE)
+			no_rect = no_scores.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+			self.screen.blit(no_scores, no_rect)
+		else:
+			start_y = 150
+			for i, score in enumerate(self.high_scores[:10], 1):
+				score_text = self.font_medium.render(f"{i}. {score:,}", True, WHITE)
+				score_rect = score_text.get_rect(center=(SCREEN_WIDTH // 2, start_y + i * 35))
+				self.screen.blit(score_text, score_rect)
+		
+		back_text = self.font_small.render("Press ESC or SPACE to return", True, WHITE)
+		back_rect = back_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 50))
+		self.screen.blit(back_text, back_rect)
+	
+	def render_settings(self) -> None:
+		self.screen.fill(BLACK)
+		title_text = self.font_large.render("SETTINGS", True, WHITE)
+		title_rect = title_text.get_rect(center=(SCREEN_WIDTH // 2, 80))
+		self.screen.blit(title_text, title_rect)
+		
+		mute_status = "ON" if self.audio.is_muted() else "OFF"
+		mute_text = self.font_medium.render(f"Sound: {mute_status} (Press M to toggle)", True, WHITE)
+		mute_rect = mute_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50))
+		self.screen.blit(mute_text, mute_rect)
+		
+		volume_text = self.font_medium.render(f"Volume: {int(self.audio.volume * 100)}%", True, WHITE)
+		volume_rect = volume_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+		self.screen.blit(volume_text, volume_rect)
+		
+		back_text = self.font_small.render("Press ESC to return", True, WHITE)
+		back_rect = back_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 50))
+		self.screen.blit(back_text, back_rect)
+	
 	def render(self) -> None:
 		if self.state.current == GameState.TITLE:
 			self.render_title()
@@ -334,6 +469,10 @@ class Game:
 			self.render_paused()  # Then overlay pause
 		elif self.state.current == GameState.GAME_OVER:
 			self.render_game_over()
+		elif self.state.current == GameState.HIGH_SCORES:
+			self.render_high_scores()
+		elif self.state.current == GameState.SETTINGS:
+			self.render_settings()
 		else:
 			self.screen.fill(BLACK)
 		
