@@ -209,7 +209,9 @@ class Game:
 			# Update saucer
 			if self.saucer:
 				self.saucer.update(dt)
-				if not self.saucer.alive():  # Despawned off screen
+				# Check if saucer despawned (off screen)
+				# Since saucer is not in a sprite group, we check bounds directly
+				if self.saucer.rect.right < 0 or self.saucer.rect.left > SCREEN_WIDTH:
 					self.saucer = None
 			
 			# Try to spawn saucer
@@ -389,6 +391,11 @@ class Game:
 		# Render wave
 		wave_text = self.font_small.render(f"Wave: {self.wave}", True, WHITE)
 		self.screen.blit(wave_text, (10, 60))
+		
+		# Debug: Show saucer spawn timer (if no saucer active)
+		if not self.saucer and self.formation:
+			timer_text = self.font_small.render(f"Saucer in: {max(0, int(self.next_saucer_interval - self.saucer_spawn_timer))}s", True, WHITE)
+			self.screen.blit(timer_text, (10, 85))
 
 	def render_paused(self) -> None:
 		# Semi-transparent overlay on top of game

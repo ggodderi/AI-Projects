@@ -1,15 +1,42 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Optional
 
-import numpy as np
 import pygame
+
+# Try to import numpy, fallback to math if not available
+try:
+	import numpy as np
+	HAS_NUMPY = True
+except ImportError:
+	HAS_NUMPY = False
+	np = None
 
 
 class AudioManager:
 	def __init__(self, volume: float = 0.7) -> None:
-		pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+		# Initialize mixer - use real audio device if available
+		# Only fallback to dummy if explicitly needed (for headless testing)
+		try:
+			# Don't set dummy driver - use real audio
+			pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+			# Verify mixer is actually initialized
+			if not pygame.mixer.get_init():
+				raise RuntimeError("Mixer not initialized")
+		except Exception:
+			# Only use dummy as absolute last resort
+			try:
+				import os
+				# Only set dummy if not already set
+				if "SDL_AUDIODRIVER" not in os.environ:
+					os.environ["SDL_AUDIODRIVER"] = "dummy"
+				pygame.mixer.quit()
+				pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+			except Exception:
+				pass  # Audio not available
+		
 		self.volume = max(0.0, min(1.0, volume))
 		self.muted = False
 		self.sounds: dict[str, Optional[pygame.mixer.Sound]] = {}
@@ -18,6 +45,10 @@ class AudioManager:
 	
 	def _generate_tone(self, frequency: float, duration: float, sample_rate: int = 22050, wave_type: str = "sine") -> pygame.mixer.Sound:
 		"""Generate a tone sound effect."""
+		if not HAS_NUMPY:
+			# Fallback: generate simple tone using math
+			return self._generate_tone_fallback(frequency, duration, sample_rate, wave_type)
+		
 		samples = int(duration * sample_rate)
 		time_array = np.linspace(0, duration, samples)
 		
@@ -47,6 +78,42 @@ class AudioManager:
 		sound = pygame.sndarray.make_sound(stereo_wave)
 		return sound
 	
+	def _generate_tone_fallback(self, frequency: float, duration: float, sample_rate: int, wave_type: str) -> pygame.mixer.Sound:
+		"""Fallback tone generator without numpy."""
+		samples = int(duration * sample_rate)
+		# Create byte array for stereo 16-bit sound
+		import array
+		arr = array.array('h', [0] * (samples * 2))
+		
+		for i in range(samples):
+			t = i / sample_rate
+			if wave_type == "sine":
+				val = math.sin(2 * math.pi * frequency * t)
+			elif wave_type == "square":
+				val = 1.0 if math.sin(2 * math.pi * frequency * t) >= 0 else -1.0
+			else:
+				val = math.sin(2 * math.pi * frequency * t)
+			
+			# Simple envelope
+			fade_samples = min(int(0.01 * sample_rate), samples // 10)
+			if i < fade_samples:
+				val *= i / fade_samples if fade_samples > 0 else 1.0
+			elif i >= samples - fade_samples:
+				val *= (samples - i) / fade_samples if fade_samples > 0 else 1.0
+			
+			sample_val = int(val * 32767 * self.volume)
+			# Stereo: left and right channels
+			arr[i * 2] = sample_val
+			arr[i * 2 + 1] = sample_val
+		
+		try:
+			sound = pygame.sndarray.make_sound(arr)
+			return sound
+		except Exception:
+			# Create a minimal silent sound as last resort
+			silent = array.array('h', [0] * (samples * 2))
+			return pygame.sndarray.make_sound(silent)
+	
 	def _generate_player_shot(self) -> pygame.mixer.Sound:
 		"""Generate player shot sound (high-pitched beep)."""
 		return self._generate_tone(800, 0.1, wave_type="square")
@@ -57,6 +124,9 @@ class AudioManager:
 	
 	def _generate_invader_hit(self) -> pygame.mixer.Sound:
 		"""Generate invader hit sound (explosion-like)."""
+		if not HAS_NUMPY:
+			return self._generate_tone_fallback(200, 0.2, 22050, "sine")
+		
 		sample_rate = 22050
 		duration = 0.2
 		samples = int(duration * sample_rate)
@@ -79,6 +149,9 @@ class AudioManager:
 	
 	def _generate_player_death(self) -> pygame.mixer.Sound:
 		"""Generate player death sound (longer explosion)."""
+		if not HAS_NUMPY:
+			return self._generate_tone_fallback(300, 0.5, 22050, "sine")
+		
 		sample_rate = 22050
 		duration = 0.5
 		samples = int(duration * sample_rate)
@@ -98,6 +171,9 @@ class AudioManager:
 	
 	def _generate_saucer_flyby(self) -> pygame.mixer.Sound:
 		"""Generate saucer flyby sound (alternating tones)."""
+		if not HAS_NUMPY:
+			return self._generate_tone_fallback(600, 0.5, 22050, "sine")
+		
 		sample_rate = 22050
 		duration = 2.0
 		samples = int(duration * sample_rate)
@@ -143,10 +219,20 @@ class AudioManager:
 		for name, generator in sound_generators.items():
 			if name not in self.sounds or self.sounds[name] is None:
 				try:
-					self.sounds[name] = generator()
-					self.sounds[name].set_volume(self.volume)
-				except Exception:
-					self.sounds[name] = None
+					sound = generator()
+					if sound is not None:
+						sound.set_volume(self.volume)
+						self.sounds[name] = sound
+					else:
+						self.sounds[name] = None
+				except Exception as e:
+					# Try to generate a simple fallback sound
+					try:
+						self.sounds[name] = self._generate_tone_fallback(440, 0.1, 22050, "sine")
+						if self.sounds[name]:
+							self.sounds[name].set_volume(self.volume)
+					except Exception:
+						self.sounds[name] = None
 	
 	def _load_sounds(self) -> None:
 		"""Load sound effects from files if they exist."""
@@ -176,9 +262,19 @@ class AudioManager:
 			return
 		if name in self.sounds and self.sounds[name] is not None:
 			try:
+				# Check if mixer is initialized
+				if not pygame.mixer.get_init():
+					pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
 				self.sounds[name].play()
 			except Exception:
-				pass  # Ignore playback errors
+				# Try to reinitialize and play
+				try:
+					pygame.mixer.quit()
+					pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+					if name in self.sounds and self.sounds[name] is not None:
+						self.sounds[name].play()
+				except Exception:
+					pass  # Audio not available
 	
 	def set_volume(self, volume: float) -> None:
 		"""Set volume (0.0 to 1.0)."""

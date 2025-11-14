@@ -37,8 +37,8 @@ BUNKER_DAMAGE_RADIUS = 8  # radius of damage when hit
 
 # Saucer (Mystery Ship)
 SAUCER_SPEED = 100.0  # pixels per second
-SAUCER_SPAWN_INTERVAL_MIN = 15.0  # minimum seconds between spawns
-SAUCER_SPAWN_INTERVAL_MAX = 25.0  # maximum seconds between spawns
+SAUCER_SPAWN_INTERVAL_MIN = 5.0  # minimum seconds between spawns (reduced for testing)
+SAUCER_SPAWN_INTERVAL_MAX = 10.0  # maximum seconds between spawns (reduced for testing)
 SAUCER_POINTS_VALUES = [50, 100, 150, 200, 250, 300]  # Variable point values
 
 # Controls (pygame key constants names; resolved at runtime)

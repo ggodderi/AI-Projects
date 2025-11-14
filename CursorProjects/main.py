@@ -1,5 +1,7 @@
 import os
-os.environ.setdefault("SDL_AUDIODRIVER", "dummy")  # safe default if no audio device
+# Only set dummy audio driver if explicitly requested (for headless testing)
+# Remove this line or set environment variable SDL_AUDIODRIVER=dummy if you need it
+# os.environ.setdefault("SDL_AUDIODRIVER", "dummy")  # Commented out to allow real audio
 
 import pygame
 
