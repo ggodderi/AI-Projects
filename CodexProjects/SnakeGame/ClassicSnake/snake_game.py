@@ -91,6 +91,12 @@ class App:
         self.new_best = False
         self.transition("playing")
 
+    def save_score(self):
+        name = self.store.difficulty
+        self.new_best = self.game.score > self.store.best[name]
+        self.store.best[name] = max(self.game.score, self.store.best[name])
+        self.store.save()
+
     def perform(self, action):
         self.audio.play("click", self.store.sound)
         if action in ("start", "retry"):
@@ -98,6 +104,8 @@ class App:
         elif action == "resume":
             self.transition("playing")
         elif action == "menu":
+            if self.state in ("playing", "paused"):
+                self.save_score()
             self.transition("menu")
         elif action == "difficulty":
             choices = list(DIFFICULTIES)
@@ -171,10 +179,7 @@ class App:
             if result in ("eat", "dead", "won"):
                 self.audio.play(result, self.store.sound)
             if result in ("dead", "won"):
-                name = self.store.difficulty
-                self.new_best = self.game.score > self.store.best[name]
-                self.store.best[name] = max(self.game.score, self.store.best[name])
-                self.store.save()
+                self.save_score()
                 self.transition("over")
 
     def button(self, label, y, action, primary=False):
@@ -220,7 +225,9 @@ class App:
         self.text("SCORE", 20, MUTED, (570, 36))
         self.text(f"{self.game.score:04d}", 36, TEXT, (570, 60))
         self.text("BEST / " + self.store.difficulty.upper(), 20, MUTED, (730, 36))
-        best = max(self.store.best[self.store.difficulty], self.game.score)
+        best = self.store.best[self.store.difficulty]
+        if self.state != "menu":
+            best = max(best, self.game.score)
         self.text(f"{best:04d}", 36, GREEN, (730, 60))
         self.draw_board()
         self.text("ARROWS / WASD  Move     SPACE / P  Pause     M  Sound     F11  Fullscreen",
@@ -279,7 +286,10 @@ class App:
                 self.update(dt)
                 self.render()
         finally:
-            self.store.save()
+            if self.state in ("playing", "paused"):
+                self.save_score()
+            else:
+                self.store.save()
             pygame.quit()
 
 
