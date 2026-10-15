@@ -1,0 +1,43 @@
+SCORCHED EARTH / PYTHON ARTILLERY EDITION 1.0
+Verification date: October 15, 2026
+
+Verified environment
+Windows; CPython 3.10.4; pygame 2.6.1; SDL 2.28.4.
+Project-local environment: .venv (not included in the source ZIP).
+
+Results
+PASS: 31 unittest cases, including a complete AI campaign.
+PASS: Pygame UI smoke test using dummy video/audio drivers.
+PASS: Same Pygame UI smoke test using the native Windows display/audio.
+PASS: Native desktop event loop starts, renders, processes QUIT, and exits.
+PASS: Missing audio driver falls back to silent rendering/play.
+PASS: Menu, field manual, battlefield, pause, shop, and results screenshots
+      visually inspected for readable text and usable layout.
+
+Simulation coverage
+- Reproducible procedural terrain, launch pads, bounded craters, airbursts.
+- Gravity/wind integration and timestep equivalence.
+- Collision against tanks, 1-pixel ridges, and world boundaries.
+- Shell consumption, depleted-ammo fallback, and available-weapon cycling.
+- Shield absorption, damage credits, friendly fire, and falling damage.
+- Five-bomblet cluster split with no repeated splitting.
+- Simultaneous destruction, round limits, draws, and match tiebreaks.
+- Shop affordability, shield caps, inventory carryover, and health reset.
+- AI accuracy across four terrain seeds and a full three-round AI campaign.
+- Profile round trips, malformed JSON, invalid types, and failed writes.
+
+Interface coverage
+Keyboard and mouse input, slider aiming, firing, AI shot completion,
+automatic focus-loss pause, frozen paused physics, resume, round results,
+buying ammunition, next round, campaign completion, profile persistence,
+hotseat shop handoff and second-player controls, abandon confirmation,
+window resizing, letterboxed mouse input, and quit.
+
+Scope and limits
+This is a local two-tank game inspired by the legacy title, using original
+code/art/audio. The source release requires Python and Pygame; it is not a
+signed installer or standalone executable. macOS/Linux and pygame-ce on
+Python 3.14+ are supported by the setup instructions but unverified here.
+Active campaigns are session-only. Preferences and solo career records save.
+Fullscreen has an error fallback; platform-specific fullscreen behavior was
+not exercised in these automated checks.
